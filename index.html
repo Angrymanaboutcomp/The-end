@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEVICE_ROOM — (El pasado)</title>
+<script src="assets/audio_data.js"></script>
+
+<style>
+@font-face {
+    font-family: '8bitoperator';
+    src: url('assets/8bitoperator_jve.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Determination';
+    src: url('assets/determination_mono.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+:root {
+    --ut-font: '8bitoperator', 'Determination', monospace;
+    --box-bg: #000000;
+    --box-border: #ffffff;
+    --box-text: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-drag: none;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    overflow: hidden;
+    font-family: var(--ut-font);
+    cursor: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+}
+
+/* Contenedor Principal */
+#gameContainer {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #000;
+}
+
+.scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.scene.active {
+    display: flex;
+}
+
+/* Vista Puerta (Monocromatica) */
+#doorView {
+    flex-direction: column;
+    background: #000;
+    cursor: pointer;
+}
+
+#doorWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#doorBtn {
+    width: 240px;
+    height: 240px;
+    image-rendering: pixelated;
+    filter: grayscale(100%) contrast(1.1) brightness(0.85);
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+#doorView:hover #doorBtn {
+    filter: grayscale(100%) contrast(1.15) brightness(1.0);
+    transform: scale(1.02);
+}
+
+/* Vista Habitacion (Monocromatica y Apagada) */
+#stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+#roomWrap {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 640 / 480;
+    width: min(100%, calc(100vh * 640 / 480));
+    height: min(100%, calc(100vw * 480 / 640));
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+}
+
+#roomImg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    image-rendering: pixelated;
+    filter: grayscale(100%) brightness(0.72) contrast(0.98);
+}
+
+/* Filtro atmosferico apagado */
+#roomMoodOverlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(20, 20, 25, 0.15) 30%, rgba(0, 0, 0, 0.65) 100%);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
+/* Capa de Dialogo Undertale / Deltarune */
+#dialogueLayer {
+    position: absolute;
+    left: 5%;
+    bottom: 4%;
+    width: 90%;
+    display: none;
+    z-index: 600;
+}
+
+#dialogueLayer.visible {
+    display: block;
+}
+
+#dialogueBox {
+    background: var(--box-bg);
+    border: clamp(4px, 0.9cqw, 7px) solid var(--box-border);
+    padding: clamp(14px, 3.2cqw, 28px) clamp(16px, 3.8cqw, 32px);
+    min-height: clamp(120px, 26cqw, 165px);
+    position: relative;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 2px #000 inset;
+}
+
+#dialogueText {
+    color: var(--box-text);
+    font-family: var(--ut-font);
+    font-size: clamp(20px, 4.6cqw, 36px);
+    line-height: 1.35;
+    white-space: pre-wrap;
+    word-break: break-word;
+    letter-spacing: 0.5px;
+}
+
+/* Opciones de Eleccion estilo Undertale */
+#choiceContainer {
+    display: none;
+    margin-top: clamp(10px, 2.5cqw, 20px);
+    padding-left: clamp(20px, 4cqw, 40px);
+    gap: clamp(40px, 10cqw, 90px);
+    align-items: center;
+}
+
+#choiceContainer.show {
+    display: flex;
+}
+
+.choiceItem {
+    position: relative;
+    color: #ffffff;
+    font-size: clamp(20px, 4.6cqw, 36px);
+    font-family: var(--ut-font);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(8px, 1.8cqw, 14px);
+}
+
+.choiceSoulIcon {
+    width: clamp(14px, 2.8cqw, 22px);
+    height: clamp(14px, 2.8cqw, 22px);
+    background-image: url('assets/heart.png?v=2');
+    background-size: contain;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    display: inline-block;
+    visibility: hidden;
+}
+
+.choiceItem.selected .choiceSoulIcon {
+    visibility: visible;
+}
+
+/* Cursor SOUL */
+#heartCursor {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    background-image: url('assets/heart.png?v=2');
+    background-size: contain;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    transition: opacity 0.2s ease;
+}
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Escena 1: Puerta Monocromatica -->
+  <div id="doorView" class="scene active">
+    <div id="doorWrap">
+      <img src="assets/door_mono.png" id="doorBtn" alt="puerta" draggable="false">
+    </div>
+  </div>
+
+  <!-- Escena 2: Habitacion de Kris Monocromatica y Apagada -->
+  <div id="roomView" class="scene">
+    <div id="stage">
+      <div id="roomWrap">
+        <img id="roomImg" src="assets/room_mono.png" alt="habitacion de Kris" draggable="false">
+        <div id="roomMoodOverlay"></div>
+
+        <!-- Capa de Dialogo Undertale -->
+        <div id="dialogueLayer">
+          <div id="dialogueBox">
+            <div id="dialogueText"></div>
+            <div id="choiceContainer">
+              <div class="choiceItem" data-index="0" id="optSi">
+                <span class="choiceSoulIcon"></span>
+                <span>Si</span>
+              </div>
+              <div class="choiceItem" data-index="1" id="optNo">
+                <span class="choiceSoulIcon"></span>
+                <span>No</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="heartCursor"></div>
+
+<!-- Elementos de Audio -->
+<audio id="rainWindAudio" src="assets/rain_wind.mp3" loop preload="auto"></audio>
+<audio id="homeThemeAudio" src="assets/home_theme.mp3" loop preload="auto"></audio>
+
+<script>
+(function(){
+  "use strict";
+
+  // Cursor SOUL
+  const heartCursor = document.getElementById('heartCursor');
+  window.addEventListener('mousemove', (e) => {
+    heartCursor.style.left = e.clientX + 'px';
+    heartCursor.style.top = e.clientY + 'px';
+  });
+
+  // Elementos DOM
+  const doorView = document.getElementById('doorView');
+  const roomView = document.getElementById('roomView');
+  const dialogueLayer = document.getElementById('dialogueLayer');
+  const dialogueText = document.getElementById('dialogueText');
+  const choiceContainer = document.getElementById('choiceContainer');
+  const optSi = document.getElementById('optSi');
+  const optNo = document.getElementById('optNo');
+  const choiceItems = [optSi, optNo];
+
+  // Audios de fondo
+  const rainWindAudio = document.getElementById('rainWindAudio');
+  const homeThemeAudio = document.getElementById('homeThemeAudio');
+
+  rainWindAudio.volume = 0.35;
+  homeThemeAudio.volume = 0.42;
+
+  // Sistema de audio con Web Audio API y Audio Pools concurrentes
+  let audioCtx = null;
+  const audioBuffers = {};
+
+  function base64ToArrayBuffer(b64) {
+    const raw = window.atob(b64);
+    const rawLen = raw.length;
+    const array = new Uint8Array(rawLen);
+    for (let i = 0; i < rawLen; i++) {
+      array[i] = raw.charCodeAt(i);
+    }
+    return array.buffer;
+  }
+
+  // Audio Pool para reproducir instancias sin cortar la anterior
+  const audioPools = {
+    toriel: [],
+    generic: [],
+    squeak: []
+  };
+  const poolIndices = { toriel: 0, generic: 0, squeak: 0 };
+
+  function initAudioPools() {
+    if (window.UT_AUDIO_DATA) {
+      for (let i = 0; i < 6; i++) {
+        const t = new Audio(window.UT_AUDIO_DATA.toriel);
+        t.preload = 'auto';
+        audioPools.toriel.push(t);
+
+        const g = new Audio(window.UT_AUDIO_DATA.generic);
+        g.preload = 'auto';
+        audioPools.generic.push(g);
+      }
+      for (let i = 0; i < 4; i++) {
+        const s = new Audio(window.UT_AUDIO_DATA.squeak);
+        s.preload = 'auto';
+        audioPools.squeak.push(s);
+      }
+    }
+  }
+
+  initAudioPools();
+
+  function initAudioContext() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+        if (window.UT_AUDIO_DATA) {
+          ['generic', 'toriel', 'squeak'].forEach((k) => {
+            if (window.UT_AUDIO_DATA[k]) {
+              const b64Data = window.UT_AUDIO_DATA[k].split(',')[1];
+              const arrayBuf = base64ToArrayBuffer(b64Data);
+              audioCtx.decodeAudioData(arrayBuf.slice(0), (decoded) => {
+                audioBuffers[k] = decoded;
+              }).catch(()=>{});
+            }
+          });
+        }
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playPool(key) {
+    const pool = audioPools[key];
+    if (!pool || pool.length === 0) return;
+    const idx = poolIndices[key];
+    poolIndices[key] = (idx + 1) % pool.length;
+    const a = pool[idx];
+    try {
+      a.currentTime = 0;
+      a.volume = 1.0;
+      a.play().catch(()=>{});
+    } catch(e){}
+  }
+
+  function playSfx(key) {
+    if (audioCtx && audioBuffers[key]) {
+      try {
+        const src = audioCtx.createBufferSource();
+        src.buffer = audioBuffers[key];
+        const gain = audioCtx.createGain();
+        gain.gain.value = 1.0;
+        src.connect(gain);
+        gain.connect(audioCtx.destination);
+        src.start(0);
+        return;
+      } catch(e){}
+    }
+    playPool(key);
+  }
+
+  // Monologo de Toriel - Ortografia y puntuacion corregidas (sin tildes)
+  const torielMonologue = [
+    "* Desde el dia que se fueron...",
+    "* Sabia que algo mal habia en el ambiente de ese dia.",
+    "* Kris tan apagado, Asriel lucia extrano...",
+    "* Pense capaz estaba emocionado de estar de vuelta en Hometown,",
+    "* de vuelta en Hometown, junto a todos sus amigos.",
+    "* Pero entonces supe de Kris.",
+    "* Lo intente ir a visitar, pero el ya no estaba en su cama.",
+    "* Intente ir a hablar con Carol, pero...",
+    "* Por alguna razon, no estaban dejando pasar a nadie.",
+    "* Su casa estaba completamente clausurada al publico...",
+    "* Yo me quede afuera, preocupada, muerta de miedo...",
+    "* Hora tras hora, pero nada sucedio.",
+    "* Tenia miedo, tenia miedo de lo que les habia pasado a mi Kris y a mi Asriel...",
+    "* Que les habia pasado a todos sus amigos... a Susie, a Shade, a Mido...",
+    "* Pense entonces haber visto un brillo viniendo de una de las ventanas rotas,",
+    "* pero nada paso despues...",
+    "* Nunca salieron, nunca nadie mas entro ahi.",
+    "* Soy una estupida, podia haberlos invitado a mi casa.",
+    "* Podia haber hecho que se quedaran en mi casa, en vez...",
+    "* Podian ellos haber venido a casa.",
+    "* Pero nunca lo hicieron.",
+    "* Mi pobre Asriel... mi pobre Kris... Carol... Rudy... Noelle...",
+    "* Podian haber venido a casa...",
+    "* Podian haber venido a casa.",
+    "* . . ."
+  ];
+
+  // Estado del Dialogo
+  let inRoom = false;
+  let dialogueActive = false;
+  let isTyping = false;
+  let currentToken = null;
+  let currentLineFull = '';
+  let activeVoice = 'generic'; // 'generic' o 'toriel'
+  let queue = [];
+  let onSequenceComplete = null;
+  let choiceMode = false;
+  let choiceIndex = 1; // Por defecto 'No' como en "Si ♥️No"
+
+  // Transicion desde la puerta a la habitacion
+  function enterRoom() {
+    if (inRoom) return;
+    inRoom = true;
+    initAudioContext();
+
+    // Arrancar sonido de lluvia y viento de fondo
+    rainWindAudio.play().catch(()=>{});
+
+    doorView.classList.remove('active');
+    roomView.classList.add('active');
+    document.title = "(Toriel esta hablando del otro lado de la pared...)";
+  }
+
+  doorView.addEventListener('click', enterRoom);
+
+  // Funciones de la caja de dialogo
+  function showBox() {
+    dialogueLayer.classList.add('visible');
+  }
+
+  function hideBox() {
+    dialogueLayer.classList.remove('visible');
+    choiceContainer.classList.remove('show');
+    choiceMode = false;
+    dialogueActive = false;
+  }
+
+  // Typewriter Undertale: sonido cadenciado cada 2 letras, sin cortarse
+  function typeLine(text, onComplete) {
+    isTyping = true;
+    currentLineFull = text;
+    dialogueText.textContent = '';
+
+    let i = 0;
+    let letterCount = 0;
+    const token = { cancelled: false };
+    currentToken = token;
+
+    function step() {
+      if (token.cancelled) return;
+
+      if (i < text.length) {
+        const char = text[i];
+        dialogueText.textContent += char;
+
+        // Sonido de escritura estilo Undertale: reproduce cada 2 caracteres pronunciables
+        if (char !== ' ' && char !== '\n' && char !== '*' && char !== '(' && char !== ')' && char !== '.' && char !== ',' && char !== ';') {
+          letterCount++;
+          if (letterCount % 2 === 1) {
+            playSfx(activeVoice);
+          }
+        }
+
+        i++;
+
+        // Timing Undertale: pausas ligeras tras puntuacion
+        let delay = 32;
+        if (char === ',' || char === ';') {
+          delay = 140;
+        } else if (char === '.' || char === '!' || char === '?') {
+          delay = 200;
+        }
+
+        setTimeout(step, delay);
+      } else {
+        isTyping = false;
+        if (onComplete) onComplete();
+      }
+    }
+
+    step();
+  }
+
+  // Avanzar o saltar escritura
+  function handleAdvance() {
+    if (!dialogueActive || choiceMode) return;
+
+    if (isTyping) {
+      // Salto instantaneo al texto completo
+      if (currentToken) currentToken.cancelled = true;
+      isTyping = false;
+      dialogueText.textContent = currentLineFull;
+      if (queue.length > 0 && typeof queue[0] === 'function') {
+        const action = queue.shift();
+        action();
+      }
+      return;
+    }
+
+    // Avanzar siguiente linea en cola
+    if (queue.length > 0) {
+      const nextItem = queue.shift();
+      if (typeof nextItem === 'function') {
+        nextItem();
+      } else {
+        typeLine(nextItem, () => {
+          if (queue.length > 0 && typeof queue[0] === 'function') {
+            const action = queue.shift();
+            action();
+          }
+        });
+      }
+    } else {
+      if (onSequenceComplete) {
+        const cb = onSequenceComplete;
+        onSequenceComplete = null;
+        cb();
+      } else {
+        hideBox();
+      }
+    }
+  }
+
+  // Configurar e iniciar secuencia de texto
+  function startDialogueSequence(lines, voice, onComplete) {
+    initAudioContext();
+    dialogueActive = true;
+    activeVoice = voice || 'generic';
+    queue = lines.slice();
+    onSequenceComplete = onComplete || null;
+    showBox();
+    handleAdvance();
+  }
+
+  // Actualizar visualizacion de opciones
+  function updateChoiceVisual() {
+    choiceItems.forEach((item, idx) => {
+      item.classList.toggle('selected', idx === choiceIndex);
+    });
+  }
+
+  function setChoice(index) {
+    if (choiceIndex !== index) {
+      choiceIndex = index;
+      playSfx('squeak');
+      updateChoiceVisual();
+    }
+  }
+
+  // Mostrar menu de eleccion Si / No
+  function presentChoice(onYes, onNo) {
+    choiceMode = true;
+    choiceContainer.classList.add('show');
+    choiceIndex = 1; // Por defecto en 'No' como en "Si ♥️No"
+    updateChoiceVisual();
+
+    function cleanup() {
+      choiceContainer.classList.remove('show');
+      choiceMode = false;
+      window.removeEventListener('keydown', keyNav);
+    }
+
+    function keyNav(e) {
+      if (!choiceMode) return;
+      if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        setChoice(0);
+      } else if (e.code === 'ArrowRight' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        setChoice(1);
+      } else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') {
+        e.preventDefault();
+        const chosen = choiceIndex;
+        cleanup();
+        if (chosen === 0) onYes();
+        else onNo();
+      }
+    }
+
+    window.addEventListener('keydown', keyNav);
+
+    optSi.onclick = (e) => {
+      e.stopPropagation();
+      cleanup();
+      onYes();
+    };
+
+    optNo.onclick = (e) => {
+      e.stopPropagation();
+      cleanup();
+      onNo();
+    };
+
+    optSi.onmouseenter = () => setChoice(0);
+    optNo.onmouseenter = () => setChoice(1);
+  }
+
+  // Secuencia principal:
+  // *Haces click*
+  // * (Toriel esta hablando del otro lado de la pared, en su habitacion.)
+  // * (Escuchar?)
+  // Si ♥️No
+  // Si no: * . . .
+  // Si si: Toriel empieza a hablar con You Could Always Come Home de fondo
+  function triggerMainEvent() {
+    if (dialogueActive) return;
+
+    activeVoice = 'generic';
+    startDialogueSequence([
+      "* (Toriel esta hablando del otro lado de la pared, en su habitacion.)",
+      "* (Escuchar?)",
+      () => {
+        presentChoice(
+          // Si si:
+          () => {
+            // Pausar lluvia y viento ambiente
+            rainWindAudio.pause();
+
+            // Iniciar tema musical de YouTube
+            homeThemeAudio.currentTime = 0;
+            homeThemeAudio.play().catch(()=>{});
+
+            // Iniciar monologo de Toriel con su voz de dialogo
+            startDialogueSequence(torielMonologue, 'toriel', () => {
+              hideBox();
+            });
+          },
+          // Si no:
+          () => {
+            // Mostrar "* . . ." con sonido generico y cerrar
+            startDialogueSequence(["* . . ."], 'generic', () => {
+              hideBox();
+            });
+          }
+        );
+      }
+    ], 'generic');
+  }
+
+  // Cualquier lugar donde clickees en la habitacion empieza el dialogo
+  roomView.addEventListener('click', () => {
+    if (choiceMode) return;
+    if (!dialogueActive) {
+      triggerMainEvent();
+    } else {
+      handleAdvance();
+    }
+  });
+
+  // Controles por teclado: [Z], [Enter], [Espacio]
+  window.addEventListener('keydown', (e) => {
+    if (!inRoom) {
+      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') {
+        enterRoom();
+      }
+      return;
+    }
+
+    if (choiceMode) return;
+
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') {
+      e.preventDefault();
+      if (!dialogueActive) {
+        triggerMainEvent();
+      } else {
+        handleAdvance();
+      }
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
